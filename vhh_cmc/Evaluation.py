@@ -60,11 +60,12 @@ class Evaluation(object):
         self.all_shot_file_list = tilt_shot_file_list + pan_shot_file_list + na_shot_file_list
         self.all_shot_file_list.sort()
         all_shot_file_np = np.array(self.all_shot_file_list)
-        print(len(self.all_shot_file_list))
+        #print(len(self.all_shot_file_list))
 
         # load groundtruth labels
-        test_gt_labels_file = path_annotations + "/test_shots_without_track.csv"
-        print(test_gt_labels_file)
+        #test_gt_labels_file = path_annotations + "/annotations_tiny.csv"
+        test_gt_labels_file = path_annotations + "/annotations.csv"
+        #print(test_gt_labels_file)
       
         fp = open(test_gt_labels_file, 'r')
         lines = fp.readlines()
@@ -72,15 +73,13 @@ class Evaluation(object):
 
         gt_annotation_list = []
         for line in lines:
-            print(line)
+            #print(line)
             line = line.replace('\n', '')
             line = line.replace('\\', '/')
             line = line.replace('\ufeff', '')
             line_split = line.split(';')
-            print(line_split)
-
             gt_annotation_list.append([line_split[0], line_split[2], line_split[3]])
-        gt_annotation_np = np.array(gt_annotation_list)       
+        gt_annotation_np = np.array(gt_annotation_list)
 
         final_dataset = []
         for i in range(0, len(gt_annotation_np)):
@@ -96,8 +95,9 @@ class Evaluation(object):
             sample_path = all_shot_file_np[idx]
             final_dataset.append([path, i, start, stop, class_name])
 
-        final_dataset.sort()
+        #final_dataset.sort()
         self.final_dataset_np = np.array(final_dataset)
+        print(self.final_dataset_np)
 
     def load_vhhmmsi_GT_V2_db(self):
         """
@@ -184,26 +184,19 @@ class Evaluation(object):
                 line = line.replace('\n', '')
                 line_split = line.split(';')
                 pred_list.append([line_split[0], int(line_split[1]), int(line_split[2]), int(line_split[3]), line_split[4]])
-        pred_list.sort()
         pred_np = np.array(pred_list)
 
-        pred_np_without_track = np.delete(pred_np, idx_track, 0)
-        print(pred_np_without_track)
-        print(pred_np_without_track.shape)
+        # add sorting part
+        pred_sort_np = pred_np[pred_np[:, 1].argsort()]
+        final_dataset_sort_np = self.final_dataset_np[self.final_dataset_np[:, 1].argsort()]
 
-        gt_np_prep_without_track = np.delete(self.final_dataset_np, idx_track, 0)
-        print(gt_np_prep_without_track)
-        print(gt_np_prep_without_track.shape)
+        # remove paths
+        for i in range(0, len(final_dataset_sort_np)):
+            name = final_dataset_sort_np[i][0].split('/')[-1]
+            final_dataset_sort_np[i][0] = name
 
-        # calculate metrics
-        #pred_np_prep = np.squeeze(pred_np[:, 4:])
-        #gt_np_prep = np.squeeze(final_gt_np[:, 4:])
-
-        pred_np_prep = np.squeeze(pred_np_without_track[:, 4:])
-        gt_np_prep = np.squeeze(gt_np_prep_without_track[:, 4:])
-
-        #print(pred_np)
-        #print(final_gt_np)
+        pred_np_prep = np.squeeze(pred_sort_np[:, 4:])
+        gt_np_prep = np.squeeze(final_dataset_sort_np[:, 4:])
 
         accuracy, precision, recall, f1_score = self.calculate_metrics(y_score=pred_np_prep, y_test=gt_np_prep)
         return accuracy, precision, recall, f1_score
@@ -272,7 +265,10 @@ class Evaluation(object):
         import matplotlib.pyplot as plt
         import numpy as np
         import itertools
+        import matplotlib
+        matplotlib.use('Agg')
         from matplotlib import pyplot as plt
+
         plt.rc('pdf', fonttype=42)
 
 
@@ -330,7 +326,7 @@ class Evaluation(object):
         print(self.config_instance.path_eval_results)
         fp = open(self.config_instance.path_eval_results + "/" + fName.split('/')[-1].split('.')[0] + ".csv", 'w')
 
-        header = "exp_name;magnitude_th;distance_th;acc;prec;rec;f1_score"
+        header = "exp_name;mvi_mv_ratio;threshold_significance;threshold_consistency;mvi_window_size;region_window_size;active_threshold;acc;prec;rec;f1_score"
         fp.write(header + "\n")
 
         for i in range(0, len(cmc_results_np)):

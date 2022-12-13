@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import datetime
 from PIL import Image
-import torch
 
 
 class Video(object):
@@ -43,6 +42,8 @@ class Video(object):
             print("ERROR: you must add a video file path!");
             exit(1);
         self.vidName = self.vidFile.split('/')[-1]
+
+        print(self.vidFile)
         self.vid = cv2.VideoCapture(self.vidFile);
 
         if (self.vid.isOpened() == False):
@@ -107,12 +108,21 @@ class Video(object):
         time_stamp_end = datetime.datetime.now().timestamp()
         time_diff = time_stamp_end - time_stamp_start
         # print("time: " + str(round(time_diff, 4)) + " sec");
-
         return frame_np
 
-    # Returns Video Shot by Shot
-    def getFramesByShots(self, shots_np, preprocess=None):
+    def formatOutput(self, frame_l, sid, start_idx, stop_idx, is_first_batch_in_shot, is_last_batch_in_shot):
+        return  {"Images": np.array(frame_l),
+                   "sid": sid,
+                   "video_name": self.vidName,
+                   "start": start_idx,
+                   "end": stop_idx,
+                   "is_first_batch_in_shot": is_first_batch_in_shot,
+                   "is_last_batch_in_shot": is_last_batch_in_shot
+                   }
 
+
+    # Returns Video Shot by Shot in batches
+    def getFramesByShots(self, shots_np, batch_size, preprocess=None):
         # initialize video capture
         cap = cv2.VideoCapture(self.vidFile)
 
@@ -121,17 +131,20 @@ class Video(object):
             shot = shots_np[i]
 
             frame_l = []
-            frames_orig = []
 
             sid = int(shot[1])
             start_idx = int(shot[2])
             stop_idx = int(shot[3])
+            
+            frames_in_batch = 0
+            is_first_batch_in_shot = True
 
             # print(f"Retrieving Frames for Shot {sid} (frames {frame_number} to {stop_idx})...")
             while frame_number <= stop_idx:
                 # read next frame
                 success, image = cap.read()
                 frame_number = frame_number + 1
+                frames_in_batch += 1
                 #print(frame_number)
 
                 # if(start_idx == stop_idx):
@@ -153,9 +166,15 @@ class Video(object):
                 else:
                     break
 
-            yield {"Images": np.array(frame_l),
-                   "sid": sid,
-                   "video_name": self.vidName,
-                   "start": start_idx,
-                   "end": stop_idx}
+                if frames_in_batch >= batch_size:
+                    is_last_batch_in_shot = frame_number > stop_idx 
+                    yield self.formatOutput(frame_l, sid, start_idx, stop_idx, is_first_batch_in_shot, is_last_batch_in_shot)
+                    is_first_batch_in_shot = False
+
+                    # Add the last frame from the previous batch to the next batch
+                    # as the flow is computed between frames
+                    frames_in_batch = 1
+                    frame_l = [frame_l[-1]]
+
+            yield self.formatOutput(frame_l, sid, start_idx, stop_idx, is_first_batch_in_shot, True)
         cap.release()

@@ -45,14 +45,12 @@ class Configuration:
         self.resize_dim = None
 
         # optical flow section
-        self.sensitivity = -1
-        self.specificity = -1
-        self.border = -1
-        self.number_of_features = -1
-        self.angle_diff_limit = -1
-        self.mode = -1
-        self.min_magnitude_threshold = -1
-        self.distance_threshold = -1
+        self.mvi_mv_ratio = -1
+        self.threshold_significance = -1
+        self.threshold_consistency = -1
+        self.mvi_window_size = -1
+        self.region_window_size = -1
+        self.active_threshold = -1
 
         # stc_core_config section
         self.class_names = None
@@ -103,16 +101,14 @@ class Configuration:
                            int(pre_processing_config['RESIZE_DIM'].split(',')[1]))
 
         # optical flow section
-        self.sensitivity = int(optical_flow_config['SENSITIVITY'])
-        self.specificity = int(optical_flow_config['SPECIFICITY'])
-        self.border = int(optical_flow_config['BORDER'])
-        self.number_of_features = int(optical_flow_config['NUMBER_OF_FEATURES'])
-        self.angle_diff_limit = int(optical_flow_config['ANGLE_DIFF_LIMIT'])
-        self.mode = int(optical_flow_config['MODE'])
-        self.min_magnitude_threshold = float(optical_flow_config['MIN_MAGNITUDE_THRESHOLD'])
-        self.distance_threshold = float(optical_flow_config['DISTANCE_THRESHOLD'])
+        self.mvi_mv_ratio = float(optical_flow_config['MVI_MV_RATIO'])
+        self.threshold_significance = float(optical_flow_config['THRESHOLD_SIGNIFICANCE'])
+        self.threshold_consistency = float(optical_flow_config['THRESHOLD_CONSISTENCY'])
+        self.mvi_window_size = int(optical_flow_config['MVI_WINDOW_SIZE'])
+        self.region_window_size = int(optical_flow_config['REGION_WINDOW_SIZE'])
+        self.active_threshold = float(optical_flow_config['ACTIVE_THRESHOLD'])
 
-        # stc_core_config section
+        # cmc_core_config section
         self.class_names = cmc_core_config['CLASS_NAMES']
 
         self.save_raw_results = int(cmc_core_config['SAVE_RAW_RESULTS'])
@@ -126,6 +122,7 @@ class Configuration:
         self.path_final_results = cmc_core_config['PATH_FINAL_RESULTS']
 
         self.path_videos = cmc_core_config['PATH_VIDEOS']
+        self.batch_size = int(cmc_core_config['BATCH_SIZE'])
 
         # evaluation section
         self.path_eval_dataset = evaluation_config['PATH_EVAL_DATASET']
